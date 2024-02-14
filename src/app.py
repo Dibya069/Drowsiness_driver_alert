@@ -6,14 +6,15 @@ import pyttsx3
 
 from src.utils import draw_landmarks, run_speech, get_aspect_ratio, parameters
 
+# Initialize TTS engine
+speech_engine = pyttsx3.init()
+speech_lock = threading.Lock()  # Create a lock for synchronization
 
 class drawsi:
     def __init__(self):
         self.frame_count = 0
         self.min_frame = 6
         self.min_tolerance = 5.0
-
-        self.speech = pyttsx3.init()
 
     def face_cal(self):
         try:
@@ -22,11 +23,10 @@ class drawsi:
             landmark_style = draw_utils.DrawingSpec((0,255,0), thickness=1, circle_radius=1)
             connection_style = draw_utils.DrawingSpec((0,0,255), thickness=1, circle_radius=1)
 
-
-            face_model = face_mesh.FaceMesh(static_image_mode = parameters.STATIC_IMAGE,
-                                            max_num_faces = parameters.MAX_NO_FACES,
-                                            min_detection_confidence = parameters.DETECTION_CONFIDENCE,
-                                            min_tracking_confidence = parameters.TRACKING_CONFIDENCE)
+            face_model = face_mesh.FaceMesh(static_image_mode=parameters.STATIC_IMAGE,
+                                            max_num_faces=parameters.MAX_NO_FACES,
+                                            min_detection_confidence=parameters.DETECTION_CONFIDENCE,
+                                            min_tracking_confidence=parameters.TRACKING_CONFIDENCE)
             return face_model
         except Exception as e:
             print(e, sys)
@@ -59,15 +59,17 @@ class drawsi:
                             cv.putText(image, f"Time: {elapsed_time}", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
                             
                             if elapsed_time > 3:
-                                self.frame_count += 1
-                                start_time = 0
+                                with speech_lock:
+                                    self.frame_count += 1
                         else:
                             self.frame_count = 0
                             
                         if self.frame_count > self.min_frame:
                             message = 'Drowsy Alert: It Seems you are sleeping.. please wake up'
-                            t = threading.Thread(target=run_speech, args=(self.speech, message)) #create new instance if thread is dead
-                            t.start()
+                            elapsed_time = 0
+                            with speech_lock:
+                                t = threading.Thread(target=run_speech, args=(speech_engine, message))
+                                t.start()
 
                         draw_landmarks(image, outputs, parameters.UPPER_LOWER_LIPS , parameters.COLOR_BLUE)
                         draw_landmarks(image, outputs, parameters.LEFT_RIGHT_LIPS, parameters.COLOR_BLUE)
@@ -76,13 +78,12 @@ class drawsi:
                         ratio_lips =  get_aspect_ratio(image, outputs, parameters.UPPER_LOWER_LIPS, parameters.LEFT_RIGHT_LIPS)
                         if ratio_lips < 1.8:
                             message = 'Drowsy Warning: You looks tired.. please take rest'
-                            p = threading.Thread(target=run_speech, args=(self.speech, message)) #create new instance if thread is dead
-                            p.start()
-
-                    
+                            with speech_lock:
+                                p = threading.Thread(target=run_speech, args=(speech_engine, message))
+                                p.start()
 
                     cv.imshow("FACE MESH", image)
-                    if cv.waitKey(1) & 255 == 27:
+                    if cv.waitKey(5) & 0xFF == ord('q'):
                         break
 
         except Exception as e:
