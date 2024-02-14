@@ -33,9 +33,9 @@ class drawsi:
 
     def main_fun(self, cap, face_model):
         try:
+            start_time = time.time()
             while True:
                 result, image = cap.read()
-                
                 if result:
                     image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
                     outputs = face_model.process(image_rgb)
@@ -53,9 +53,14 @@ class drawsi:
                         ratio_right =  get_aspect_ratio(image, outputs, parameters.RIGHT_EYE_TOP_BOTTOM, parameters.RIGHT_EYE_LEFT_RIGHT)
                         
                         ratio = (ratio_left + ratio_right)/2.0
-                        
+
                         if ratio > self.min_tolerance:
-                            self.frame_count += 1
+                            elapsed_time = int(time.time() - start_time)
+                            cv.putText(image, f"Time: {elapsed_time}", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
+                            
+                            if elapsed_time > 3:
+                                self.frame_count += 1
+                                start_time = 0
                         else:
                             self.frame_count = 0
                             
@@ -74,7 +79,7 @@ class drawsi:
                             p = threading.Thread(target=run_speech, args=(self.speech, message)) #create new instance if thread is dead
                             p.start()
 
-                    cv.putText(image, f"Time: {int(time.time())}", (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
+                    
 
                     cv.imshow("FACE MESH", image)
                     if cv.waitKey(1) & 255 == 27:
