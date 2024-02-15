@@ -34,6 +34,10 @@ class drawsi:
     def main_fun(self, cap, face_model):
         try:
             start_time = time.time()
+
+            fourcc = cv.VideoWriter_fourcc(*'XVID')
+            out = cv.VideoWriter('output.avi', fourcc, 20.0, (640, 480))  # Adjust frame size and FPS as needed
+
             while True:
                 result, image = cap.read()
                 if result:
@@ -44,9 +48,8 @@ class drawsi:
                         draw_landmarks(image, outputs, parameters.LEFT_EYE_TOP_BOTTOM, parameters.COLOR_RED)
                         draw_landmarks(image, outputs, parameters.LEFT_EYE_LEFT_RIGHT, parameters.COLOR_RED)
                         
-                        ratio_left =  get_aspect_ratio(image, outputs, parameters.LEFT_EYE_TOP_BOTTOM, parameters.LEFT_EYE_LEFT_RIGHT)
+                        ratio_left =  get_aspect_ratio(image, outputs, parameters.LEFT_EYE_TOP_BOTTOM, parameters.LEFT_EYE_LEFT_RIGHT)                        
                         
-                
                         draw_landmarks(image, outputs, parameters.RIGHT_EYE_TOP_BOTTOM, parameters.COLOR_RED)
                         draw_landmarks(image, outputs, parameters.RIGHT_EYE_LEFT_RIGHT, parameters.COLOR_RED)
                         
@@ -66,7 +69,8 @@ class drawsi:
                             
                         if self.frame_count > self.min_frame:
                             message = 'Drowsy Alert: It Seems you are sleeping.. please wake up'
-                            elapsed_time = 0
+                            elapsed_time = elapsed_time - start_time
+
                             with speech_lock:
                                 t = threading.Thread(target=run_speech, args=(speech_engine, message))
                                 t.start()
@@ -83,6 +87,8 @@ class drawsi:
                                 p.start()
 
                     cv.imshow("FACE MESH", image)
+                    out.write(image)  # Write frame to output video
+
                     if cv.waitKey(5) & 0xFF == ord('q'):
                         break
 
@@ -96,4 +102,4 @@ if __name__ == "__main__":
     obj = drawsi()
 
     Fmodel = obj.face_cal()
-    obj.main_fun(cv.VideoCapture(0), Fmodel)
+    obj.main_fun(cv.VideoCapture(1), Fmodel)
